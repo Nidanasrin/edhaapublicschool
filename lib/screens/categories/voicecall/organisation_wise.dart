@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
-
 
 class OrganisationWise extends StatefulWidget {
   const OrganisationWise({super.key});
@@ -17,101 +21,206 @@ class _OrganisationWiseState extends State<OrganisationWise> {
   final List<String> items = ["Text", "Voice"];
 
   final record = AudioRecorder();
-  final audioPlayer =AudioPlayer();
+  final audioPlayer = AudioPlayer();
   String? filePath;
+  bool isUploading = false;
 
-  Future<void> startRecording()async{
-    if(await record.hasPermission()){
-      final path = "/storage/emulated/0/Download/recording_${DateTime.now().millisecondsSinceEpoch}.m4a";
-      await record.start(RecordConfig(encoder: AudioEncoder.aacLc),path: path);
+  Future<void> startRecording() async {
+    if (await record.hasPermission()) {
+      final dir = await getApplicationDocumentsDirectory();
+      final path =
+          '${dir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      await record.start(RecordConfig(encoder: AudioEncoder.aacLc), path: path);
       filePath = path;
       debugPrint('Recording started: $path');
     }
   }
-  Future<void>stopRecording()async{
-    filePath = await record.stop();
-    debugPrint('Recording saved at :$filePath');
+
+  Future<void> stopRecording() async {
+    final path = await record.stop();
+    setState(() {
+      filePath = path;
+    });
+    print('Stopped recording. File saved at: $filePath');
   }
-  Future<void> playRecording()async{
-    if(filePath!=null){
+
+  Future<void> playRecording() async {
+    if (filePath != null) {
       await audioPlayer.play(DeviceFileSource(filePath!));
       debugPrint("Playing: $filePath");
     }
   }
+
   Future<void> stopPlaying() async {
     await audioPlayer.stop();
     debugPrint("Stopped playing");
   }
-  void voicebox(){
-    showDialog(context: context, builder: (context)=>
-    AlertDialog(
-       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)) ,
-      content: Column(mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset("assets/images/microphone-black-shape.png",height: 50,width: 50,),
-          SizedBox(height: 10.0,),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            alignment: WrapAlignment.center,
-            children: [
-              ElevatedButton(
+
+  void voicebox() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              "assets/images/microphone-black-shape.png",
+              height: 50,
+              width: 50,
+            ),
+            SizedBox(height: 10.0),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      side: BorderSide(color: Colors.grey)),
-                  onPressed: () {
-                    startRecording();
-                  }, child: Text("RECORD")),
-              ElevatedButton(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    side: BorderSide(color: Colors.grey),
+                  ),
+                  onPressed: () async {
+                    await startRecording();
+                  },
+                  child: Text("RECORD"),
+                ),
+                ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      foregroundColor: Colors.black,
-                      side: BorderSide(color: Colors.grey)),
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    foregroundColor: Colors.black,
+                    side: BorderSide(color: Colors.grey),
+                  ),
                   onPressed: () {
-                    startRecording();
-                  }, child: Text("STOP")),
-              ElevatedButton(style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  foregroundColor: Colors.black,
-                  side: BorderSide(color: Colors.grey)),
-                  onPressed: () {
-                playRecording();
-                  }, child: Text("PLAY")),
-              ElevatedButton(
+                    stopRecording();
+                  },
+                  child: Text("STOP"),
+                ),
+                ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      side: BorderSide(color: Colors.grey)),
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    foregroundColor: Colors.black,
+                    side: BorderSide(color: Colors.grey),
+                  ),
+                  onPressed: () {
+                    playRecording();
+                  },
+                  child: Text("PLAY"),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    side: BorderSide(color: Colors.grey),
+                  ),
                   onPressed: () {
                     stopPlaying();
-                  }, child: Text("STOP PLAYING RECORDING")),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
+                  },
+                  child: Text("STOP PLAYING RECORDING"),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.green,
-                side: BorderSide(color: Colors.green)),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text("CONFIRM"),
-          ),
-        ],
-          )
-    ));
+                side: BorderSide(color: Colors.green),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("CONFIRM"),
+            ),
+          ],
+        ),
+      ),
+    );
   }
+
+  Future<void> uploadToFirebase() async {
+    setState(() => isUploading = true);
+    try {
+      if (selectedValue == 'Text') {
+        await FirebaseFirestore.instance.collection('voice_announcements').add({
+          'type': 'Text',
+          'message': announcementController.text.trim(),
+          'timeStamp': FieldValue.serverTimestamp(),
+        });
+        print('Text announcement uploaded');
+      } else if (selectedValue == 'Voice') {
+        if (filePath == null) {
+          print('No file recorded yet!');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please record before uploading!')),
+          );
+          return;
+        }
+        print('Uploading voice from: $filePath');
+        final file = File(filePath!);
+        if (!await file.exists()) {
+          print('File not found on device!');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Recording file not found!')),
+          );
+          return;
+        }
+
+        final fileName = 'voice_${DateTime.now().microsecondsSinceEpoch}.m4a';
+        final ref = FirebaseStorage.instance.ref().child(
+          'voice_announcements/$fileName',
+        );
+        await ref.putFile(file);
+        final downloadUrl = await ref.getDownloadURL();
+        await FirebaseFirestore.instance
+            .collection('voice_announcements')
+            .add({
+              'type': 'Voice',
+              'url': downloadUrl,
+              'timestamp': FieldValue.serverTimestamp(),
+            });
+        Fluttertoast.showToast(
+          msg: 'Uploaded Successfully',
+          backgroundColor: Colors.green,
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+        );
+        announcementController.clear();
+        filePath = null;
+        setState(() {
+          selectedValue = null;
+        });
+      } else {
+        print('No voice recorded or selectedValue not set.');
+      }
+    } catch (e) {
+      debugPrint("Upload error: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      setState(() => isUploading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // just for visibility
+      backgroundColor: Colors.blueGrey.shade900,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -119,7 +228,8 @@ class _OrganisationWiseState extends State<OrganisationWise> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 35.0,),
+              SizedBox(height: 35.0),
+
               /// Communication Type Row
               Row(
                 children: [
@@ -133,10 +243,15 @@ class _OrganisationWiseState extends State<OrganisationWise> {
                   Expanded(
                     flex: 5,
                     child: DropdownButtonFormField<String>(
-                      value: selectedValue,style: TextStyle(color: Colors.white),
-                      isExpanded: true,dropdownColor: Colors.white,
+                      value: selectedValue,
+                      style: TextStyle(color: Colors.white),
+                      isExpanded: true,
+                      dropdownColor: Colors.white,
                       decoration: InputDecoration(
+                        fillColor: Colors.white,
+                        filled: true,
                         border: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         contentPadding: EdgeInsets.symmetric(horizontal: 10),
@@ -144,7 +259,10 @@ class _OrganisationWiseState extends State<OrganisationWise> {
                       items: items.map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
-                          child: Text(value, style: const TextStyle(color: Colors.black)),
+                          child: Text(
+                            value,
+                            style: const TextStyle(color: Colors.black),
+                          ),
                         );
                       }).toList(),
                       onChanged: (newValue) {
@@ -152,52 +270,63 @@ class _OrganisationWiseState extends State<OrganisationWise> {
                           selectedValue = newValue;
                         });
 
-              const SizedBox(height: 20);
-if(newValue == "Voice") {
-  voicebox();
-}
+                        const SizedBox(height: 20);
+                        if (newValue == "Voice") {
+                          voicebox();
+                        }
                       },
                     ),
                   ),
                 ],
               ),
-SizedBox(height: 20.0,),
-if(selectedValue =="Text")
-  /// Announcement Row
-  Row(
-    children: [
-      Expanded(
-        flex: 4,
-        child: Text(
-          "Announcement   :",
-          style: TextStyle(fontSize: 16, color: Colors.white),
-        ),
-      ),
-      Expanded(
-        flex: 5,
-        child: TextFormField(maxLines: 3,
-          controller: announcementController,
-          decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              hintText: "Enter Announcement ",
-              hintStyle: TextStyle(color: Colors.white)
-          ),
-        ),
-      ),
-    ],
-  ),
-              SizedBox(height: 20.0,),
+              SizedBox(height: 20.0),
+              if (selectedValue == "Text")
+                /// Announcement Row
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: Text(
+                        "Announcement   :",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 5,
+                      child: TextFormField(
+                        maxLines: 3,
+                        controller: announcementController,
+                        decoration: InputDecoration(
+                          fillColor: Colors.white,
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          hintText: "Enter Announcement ",
+                          hintStyle: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              SizedBox(height: 20.0),
               Center(
-                child:
-              ElevatedButton(style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(side: BorderSide(width: 2,color: Colors.white),borderRadius: BorderRadius.circular(10))
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(width: 2, color: Colors.white),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: isUploading ? null : uploadToFirebase,
+                  child: isUploading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text("SUBMIT"),
+                ),
               ),
-                  onPressed: (){}, child: Text("SUBMIT"))
-              )],
+            ],
           ),
         ),
       ),

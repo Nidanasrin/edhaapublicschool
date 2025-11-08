@@ -217,7 +217,7 @@ class _FloatingState extends State<Floating> {
                                     height: double.infinity,
                                   ),
                                 )
-                                    : momentsData!['photo'] != null
+                                    : (momentsData!['photo'] != null && (momentsData!['photo'] as String).isNotEmpty)
                                     ? ClipRRect(
                                         borderRadius: BorderRadius.circular(10),
                                         child: Image.network(
@@ -225,6 +225,11 @@ class _FloatingState extends State<Floating> {
                                           fit: BoxFit.cover,
                                           width: double.infinity,
                                           height: double.infinity,
+    errorBuilder: (context, error, stackTrace) {
+      return Center(
+        child: Icon(Icons.broken_image, color: Colors.white, size: 40),
+      );
+    }
                                         ),
                                       )
                                     : Center(
