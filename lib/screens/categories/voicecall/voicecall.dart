@@ -91,7 +91,7 @@ class _VoicecallState extends State<Voicecall> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white10,
+      backgroundColor: Colors.blueGrey.shade900,
       body:  Center(
         child:  Column(mainAxisAlignment: MainAxisAlignment.center,
             children: [

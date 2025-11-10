@@ -1,6 +1,9 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
@@ -20,6 +23,8 @@ class _GreetingFormState extends State<GreetingForm> {
   DateTime? toDate;
   // For simplicity, photo will be just a placeholder
   bool photoSelected = false;
+  bool isUploading = false;
+  File? selectedImage;
 
   Future<void> _pickDate(TextEditingController controller, bool isFrom) async {
     DateTime initialDate = DateTime.now();
@@ -42,8 +47,6 @@ class _GreetingFormState extends State<GreetingForm> {
     }
   }
 
-  File? selectedImage;
-
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final XFile? pickedFile = await picker.pickImage(
@@ -55,7 +58,6 @@ class _GreetingFormState extends State<GreetingForm> {
       });
     }
   }
-
 
   Future<void> pickImage() async {
     final picker = ImagePicker();
@@ -69,34 +71,52 @@ class _GreetingFormState extends State<GreetingForm> {
     }
   }
 
-  void imagebox(){
-    showDialog(context: context, builder: (context)=>
-    AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10),),
-      backgroundColor: Colors.white,
-      content: Column(mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-
-                side: BorderSide(color: Colors.indigo.shade900,width: 2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
-            ),
-              onPressed: pickImage, child: Text("OPEN CAMERA",style: TextStyle(color: Colors.indigo.shade900),)),
-          SizedBox(height: 10,),
-          ElevatedButton(
+  void imagebox() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        backgroundColor: Colors.white,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                  side: BorderSide(color: Colors.indigo.shade900,width: 2),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+
+                side: BorderSide(color: Colors.indigo.shade900, width: 2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              onPressed: _pickImage, child: Text("PICK IMAGE FROM GALLERY",style: TextStyle(color: Colors.indigo.shade900),))
-        ],
+              onPressed: pickImage,
+              child: Text(
+                "OPEN CAMERA",
+                style: TextStyle(color: Colors.indigo.shade900),
+              ),
+            ),
+            SizedBox(height: 10),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                side: BorderSide(color: Colors.indigo.shade900, width: 2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: _pickImage,
+              child: Text(
+                "PICK IMAGE FROM GALLERY",
+                style: TextStyle(color: Colors.indigo.shade900),
+              ),
+            ),
+          ],
+        ),
       ),
-    ));
+    );
   }
+
   @override
   void dispose() {
     fromDateController.dispose();
@@ -104,6 +124,47 @@ class _GreetingFormState extends State<GreetingForm> {
     titleController.dispose();
     messageController.dispose();
     super.dispose();
+  }
+
+  Future<void> uploadGreeting() async {
+    if (titleController.text.isEmpty ||
+        messageController.text.isEmpty ||
+        fromDate == null ||
+        toDate == null ||
+        selectedImage == null) {
+      Fluttertoast.showToast(msg: "Please fill all fields and add a photo.");
+      return;
+    }
+    setState(() {
+      isUploading = true;
+    });
+    try{
+      final fileName = 'greetings/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+await ref.putFile(selectedImage!);
+final imageUrl = await ref.getDownloadURL();
+await FirebaseFirestore.instance.collection('greetings').add({
+  'title': titleController.text.trim(),
+  'message': messageController.text.trim(),
+  'from_date': fromDateController.text,
+  'to_date': toDateController.text,
+  'image_url': imageUrl,
+  'timestamp': FieldValue.serverTimestamp(),
+});
+      Fluttertoast.showToast(
+          msg: "Greeting uploaded successfully!", backgroundColor: Colors.green);
+setState(() {
+  titleController.clear();
+  messageController.clear();
+  fromDateController.clear();
+  toDateController.clear();
+  selectedImage = null;
+});
+    }catch(e){
+      Fluttertoast.showToast(msg: "Error: $e", backgroundColor: Colors.red);
+    } finally {
+      setState(() => isUploading = false);
+    }
   }
 
   @override
@@ -133,7 +194,9 @@ class _GreetingFormState extends State<GreetingForm> {
                   icon: const Icon(Icons.calendar_today, color: Colors.white),
                   onPressed: () => _pickDate(fromDateController, true),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 hintText: 'dd/MM/yyyy',
                 hintStyle: const TextStyle(color: Colors.grey),
               ),
@@ -152,7 +215,9 @@ class _GreetingFormState extends State<GreetingForm> {
                   icon: const Icon(Icons.calendar_today, color: Colors.white),
                   onPressed: () => _pickDate(toDateController, false),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 hintText: 'dd/MM/yyyy',
                 hintStyle: const TextStyle(color: Colors.grey),
               ),
@@ -166,13 +231,18 @@ class _GreetingFormState extends State<GreetingForm> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.blueGrey[800],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 hintText: "Ex: Happy Diwali",
                 hintStyle: const TextStyle(color: Colors.grey),
               ),
             ),
             const SizedBox(height: 16),
-            const Text("Message Greeting", style: TextStyle(color: Colors.white)),
+            const Text(
+              "Message Greeting",
+              style: TextStyle(color: Colors.white),
+            ),
             const SizedBox(height: 5),
             TextField(
               controller: messageController,
@@ -181,7 +251,9 @@ class _GreetingFormState extends State<GreetingForm> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.blueGrey[800],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 hintText: "Message Greeting",
                 hintStyle: const TextStyle(color: Colors.grey),
               ),
@@ -203,31 +275,40 @@ class _GreetingFormState extends State<GreetingForm> {
                   color: Colors.blueGrey[800],
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.white),
-                  image: photoSelected
-                      ? const DecorationImage(
-                    image: AssetImage("assets/sample.jpg"),
+                  image: selectedImage != null
+                      ? DecorationImage(
+                    image: FileImage(selectedImage!),
                     fit: BoxFit.cover,
                   )
                       : null,
                 ),
-                child: !photoSelected
-                    ? const Icon(Icons.add_a_photo, color: Colors.white)
+                child:  selectedImage == null
+                    ? const Center(
+                    child: Icon(Icons.add_a_photo, color: Colors.white))
                     : null,
               ),
             ),
             const SizedBox(height: 30),
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  // Handle submit
-                },
+                onPressed: isUploading ? null : uploadGreeting,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   side: const BorderSide(color: Colors.white),
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 15,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: const Text("SUBMIT", style: TextStyle(color: Colors.white)),
+                child: isUploading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                  "SUBMIT",
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ),
           ],

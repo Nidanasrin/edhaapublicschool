@@ -1,5 +1,11 @@
+import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
 class Classwise extends StatefulWidget {
@@ -15,6 +21,7 @@ class _ClasswiseState extends State<Classwise> {
     final announcementController = TextEditingController();
     final List<String> items = ["Text", "Voice"];
     String? selectedItem;
+    bool isUploading = false;
     List<String> list = [
       "NURSERY",
       "LKG",
@@ -36,28 +43,49 @@ class _ClasswiseState extends State<Classwise> {
     final audioPlayer =AudioPlayer();
     String? filePath;
 
+    Future<bool> requestPermissions() async {
+      var mic = await Permission.microphone.request();
+      var storage = await Permission.storage.request();
+      return mic.isGranted && storage.isGranted;
+    }
+
+
     Future<void> startRecording()async{
-      if(await record.hasPermission()){
-        final path = "/storage/emulated/0/Download/recording_${DateTime.now().millisecondsSinceEpoch}.m4a";
-        await record.start(RecordConfig(encoder: AudioEncoder.aacLc),path: path);
+      if (await requestPermissions()) {
+        final dir = await getApplicationDocumentsDirectory();
+        final path =
+            '${dir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
         filePath = path;
         debugPrint('Recording started: $path');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Recording started")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Permissions not granted")),
+        );
       }
     }
     Future<void>stopRecording()async{
       filePath = await record.stop();
       debugPrint('Recording saved at :$filePath');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Recording stopped")),
+      );
     }
+
     Future<void> playRecording()async{
       if(filePath!=null){
         await audioPlayer.play(DeviceFileSource(filePath!));
         debugPrint("Playing: $filePath");
       }
     }
+
     Future<void> stopPlaying() async {
       await audioPlayer.stop();
       debugPrint("Stopped playing");
     }
+
     void voicebox(){
       showDialog(context: context, builder: (context)=>
           AlertDialog(
@@ -88,7 +116,7 @@ class _ClasswiseState extends State<Classwise> {
                               foregroundColor: Colors.black,
                               side: BorderSide(color: Colors.grey)),
                           onPressed: () {
-                            startRecording();
+                            stopRecording();
                           }, child: Text("STOP")),
                       ElevatedButton(style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
@@ -124,10 +152,68 @@ class _ClasswiseState extends State<Classwise> {
               )
           ));
     }
+
+    Future<void> uploadToFirebase()async{
+      setState(() => isUploading = true);
+      try{
+        if(selectedValue == 'Text'){
+          await FirebaseFirestore.instance.collection('voicecalls').doc('classwise').set({
+            'class': selectedItem,
+            'type': 'Text',
+            'message': announcementController.text.trim(),
+            'timestamp': FieldValue.serverTimestamp()
+          });
+          Fluttertoast.showToast(msg: "Text uploaded successfully");
+        }else if(selectedValue == 'Voice') {
+          if(filePath == null){
+            print('No file recorded yet!');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please record before uploading!')),
+            );
+            return;
+          }
+          print('Uploading voice from: $filePath');
+          final file = File(filePath!);
+          if(!await file.exists()){
+            print('File not found on device!');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Recording file not found!')),
+            );
+            return;
+          }
+          final fileName = 'voice_${DateTime.now().microsecondsSinceEpoch}.m4a';
+          final ref = FirebaseStorage.instance.ref().child('voice_announcements/$fileName');
+          await ref.putFile(file);
+          final downloadUrl = await ref.getDownloadURL();
+          await FirebaseFirestore.instance.collection('voice_announcements').add(
+              {
+                'class': selectedItem,
+                'type': 'Voice',
+                'url': downloadUrl,
+                'timestamp': FieldValue.serverTimestamp(),
+              });
+          Fluttertoast.showToast(
+            msg: 'Uploaded Successfully',
+            backgroundColor: Colors.green,
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.CENTER,
+          );
+        }else {
+          print('No type selected');        }
+      }catch(e){
+        debugPrint("Upload error: $e");
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }finally {
+        setState(() => isUploading = false
+        );
+      }
+    }
     @override
     Widget build(BuildContext context) {
       return Scaffold(
-        backgroundColor: Colors.black, // just for visibility
+        backgroundColor: Colors.blueGrey.shade900, // just for visibility
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Form(
@@ -253,9 +339,9 @@ class _ClasswiseState extends State<Classwise> {
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(side: BorderSide(width: 2,color: Colors.white),borderRadius: BorderRadius.circular(10))
                     ),
-                        onPressed: (){
-                     // Navigator.pop(context);
-                        }, child: Text("SUBMIT"))
+                        onPressed: isUploading ? null : uploadToFirebase,
+                        child: isUploading ? CircularProgressIndicator(color: Colors.white,)
+                        : Text("SUBMIT"))
                 )],
             ),
           ),
