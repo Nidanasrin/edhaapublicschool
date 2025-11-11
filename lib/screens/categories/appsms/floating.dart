@@ -133,14 +133,19 @@ class _FloatingState extends State<Floating> {
       if (selectedImage != null) {
         imageUrl = await uploadImageToFirebase();
       }
+      final dataToUpdate = {
+        'title': _titleController.text,
+        'message': _msgController.text,
+      };
+
+      if (imageUrl != null) {
+        dataToUpdate['photo'] = imageUrl;
+      }
+
       await FirebaseFirestore.instance
           .collection('app_sms')
           .doc('moments')
-          .update({
-            'title': _titleController.text,
-            'message': _msgController.text,
-        if(imageUrl != null) 'photo' : imageUrl,
-          });
+          .update(dataToUpdate);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Updated Successfully')));
       fetchMomentsData();
     } catch (e) {

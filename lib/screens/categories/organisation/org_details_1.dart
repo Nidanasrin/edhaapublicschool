@@ -15,7 +15,7 @@ class OrganisationDetails1 extends StatefulWidget {
 
 class _OrganisationDetails1State extends State<OrganisationDetails1> {
   Map<String, dynamic>? orgData;
- bool isLoading = true;
+  bool isLoading = true;
   File? selectedImage;
   Future<void> fetchOrganisationData() async {
     try {
@@ -25,16 +25,16 @@ class _OrganisationDetails1State extends State<OrganisationDetails1> {
           .get();
       if (doc.exists) {
         setState(() {
-          orgData = doc.data() as Map<String,dynamic>;
+          orgData = doc.data() as Map<String, dynamic>;
           isLoading = false;
         });
-      }else {
+      } else {
         setState(() {
           isLoading = false;
         });
         print("Document not found");
       }
-      }catch (e) {
+    } catch (e) {
       print("Error fetching data: $e");
       setState(() => isLoading = false);
     }
@@ -87,95 +87,139 @@ class _OrganisationDetails1State extends State<OrganisationDetails1> {
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : orgData == null
-          ? Center(child: Text("No data found", style: TextStyle(color: Colors.white)))
+          ? Center(
+              child: Text(
+                "No data found",
+                style: TextStyle(color: Colors.white),
+              ),
+            )
           : SingleChildScrollView(
-        padding: const EdgeInsets.only(left: 16.0, bottom: 8.0, top: 25.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            buildRow("Organisation Name", orgData!["Organisation_name"] ?? ""),
-            buildRow("Approx. Students", orgData!["Approx_students"].toString()),
-            buildRow("Registered Date", orgData!["Registered_date"] ?? ""),
-            buildRow("Renewal Date", orgData!["Renewal_date"] ?? ""),
-            buildRow("Expiry Date", orgData!["Expiry_date"] ?? ""),
-            buildRow("Authorized Person", orgData!["Authorized_person"] ?? ""),
-            buildRow("Contact No", orgData!["contact_no"].toString()),
-            buildRow("Email", orgData!["email"] ?? ""),
-            buildRow("Address", orgData!["address"] ?? ""),
-
-            // buildRow("Photo", "_pickImage()"),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: Row(
+              padding: const EdgeInsets.only(
+                left: 16.0,
+                bottom: 8.0,
+                top: 25.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    flex: 4,
-                    child: Text(
-                      "Photo",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                  buildRow(
+                    "Organisation Name",
+                    orgData!["Organisation_name"] ?? "",
+                  ),
+                  buildRow(
+                    "Approx. Students",
+                    orgData!["Approx_students"].toString(),
+                  ),
+                  buildRow(
+                    "Registered Date",
+                    orgData!["Registered_date"] ?? "",
+                  ),
+                  buildRow("Renewal Date", orgData!["Renewal_date"] ?? ""),
+                  buildRow("Expiry Date", orgData!["Expiry_date"] ?? ""),
+                  buildRow(
+                    "Authorized Person",
+                    orgData!["Authorized_person"] ?? "",
+                  ),
+                  buildRow("Contact No", orgData!["contact_no"].toString()),
+                  buildRow("Email", orgData!["email"] ?? ""),
+                  buildRow("Address", orgData!["address"] ?? ""),
+
+                  // buildRow("Photo", "_pickImage()"),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 4,
+                          child: Text(
+                            "Photo",
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          flex: 5,
+                          child: GestureDetector(
+                            onTap: _pickImage,
+                            child: Container(
+                              height: 100,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  width: 2,
+                                  color: Colors.white,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child:
+                                  (orgData!["photoUrl"] != null &&
+                                      orgData!["photoUrl"]
+                                          .toString()
+                                          .isNotEmpty)
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.network(
+                                        orgData!["photoUrl"],
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return Center(
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  color: Colors.white,
+                                                  size: 40,
+                                                ),
+                                              );
+                                            },
+                                      ),
+                                    )
+                                  : Center(
+                                      child: Icon(
+                                        Icons.add_a_photo,
+                                        color: Colors.white,
+                                        size: 35,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    flex: 5,
-                    child: GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        height: 100,
-                        decoration: BoxDecoration(
-                          border: Border.all(width: 2, color: Colors.white),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child:  orgData!["photoUrl"] != null
-                            ? ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.network(
-                            orgData!["photoUrl"],
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                          ),
-                        )
-                            : Center(
-                          child: Icon(
-                            Icons.add_a_photo,
-                            color: Colors.white,
-                            size: 40,
-                          )
-                          ),
-                        )
-                      ),
-                  )
-              ]
-                  )
-            ),
 
-            SizedBox(height: 10.0),
-            Center(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 5),
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(width: 2, color: Colors.white),
+                  SizedBox(height: 10.0),
+                  Center(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 40,
+                          vertical: 5,
+                        ),
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(width: 2, color: Colors.white),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                OrgEditpage(docId: 'organisation_details'),
+                          ),
+                        ).then((_) {
+                          fetchOrganisationData();
+                        });
+                      },
+                      child: Text("Edit", style: TextStyle(fontSize: 16)),
+                    ),
                   ),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => OrgEditpage(docId: 'organisation_details',))
-                  ).then((_) {
-                    fetchOrganisationData();
-                  });
-                },
-                child: Text("Edit", style: TextStyle(fontSize: 16)),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }

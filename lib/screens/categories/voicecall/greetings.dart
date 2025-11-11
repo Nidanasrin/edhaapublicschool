@@ -130,8 +130,7 @@ class _GreetingFormState extends State<GreetingForm> {
     if (titleController.text.isEmpty ||
         messageController.text.isEmpty ||
         fromDate == null ||
-        toDate == null ||
-        selectedImage == null) {
+        toDate == null) {
       Fluttertoast.showToast(msg: "Please fill all fields and add a photo.");
       return;
     }
@@ -139,10 +138,16 @@ class _GreetingFormState extends State<GreetingForm> {
       isUploading = true;
     });
     try{
+      String imageUrl = '';
       final fileName = 'greetings/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = FirebaseStorage.instance.ref().child(fileName);
-await ref.putFile(selectedImage!);
-final imageUrl = await ref.getDownloadURL();
+      if (selectedImage != null) {
+        // Upload to Firebase Storage
+        final ref = FirebaseStorage.instance.ref().child('images/${DateTime.now()}.jpg');
+        await ref.putFile(selectedImage!);
+        imageUrl = await ref.getDownloadURL();
+      } else {
+        imageUrl = ''; // or 'no_image'
+      }
 await FirebaseFirestore.instance.collection('greetings').add({
   'title': titleController.text.trim(),
   'message': messageController.text.trim(),
@@ -152,7 +157,7 @@ await FirebaseFirestore.instance.collection('greetings').add({
   'timestamp': FieldValue.serverTimestamp(),
 });
       Fluttertoast.showToast(
-          msg: "Greeting uploaded successfully!", backgroundColor: Colors.green);
+          msg: "Greeting uploaded successfully!", backgroundColor: Colors.green,gravity: ToastGravity.CENTER,toastLength: Toast.LENGTH_SHORT);
 setState(() {
   titleController.clear();
   messageController.clear();

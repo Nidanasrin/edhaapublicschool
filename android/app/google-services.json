@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "116190044280",
-    "project_id": "edhaa-public-school",
-    "storage_bucket": "edhaa-public-school.firebasestorage.app"
+    "project_number": "105789410743",
+    "project_id": "edhaa-public-school-be60b",
+    "storage_bucket": "edhaa-public-school-be60b.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:116190044280:android:081dff60cf10a68f48cd8d",
+        "mobilesdk_app_id": "1:105789410743:android:509cbb13e5de5f9c2fec32",
         "android_client_info": {
           "package_name": "raynott.example.raynottschool"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDZlOiVYfB-Oqc2WOhm_NuErKs-dllCn_k"
+          "current_key": "AIzaSyDD1E8zbB0S4IrEvzF_AxUr24WzS-rTU8w"
         }
       ],
       "services": {

@@ -6,10 +6,10 @@ void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: FirebaseOptions(
-        apiKey: 'AIzaSyDZlOiVYfB-Oqc2WOhm_NuErKs-dllCn_k',
-        appId: '1:116190044280:android:081dff60cf10a68f48cd8d',
+        apiKey: 'AIzaSyDD1E8zbB0S4IrEvzF_AxUr24WzS-rTU8w',
+        appId: '1:105789410743:android:509cbb13e5de5f9c2fec32',
         messagingSenderId: '',
-        projectId: "edhaa-public-school")
+        projectId: "edhaa-public-school-be60b")
   );
   runApp(const MyApp());
 }
