@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class Studentslistpage extends StatefulWidget {
   final String className;
@@ -12,6 +14,7 @@ class Studentslistpage extends StatefulWidget {
 
 class _StudentslistpageState extends State<Studentslistpage> {
   late List <TextEditingController> controller;
+bool isUploading = false;
 
   @override
   void initState(){
@@ -27,6 +30,28 @@ class _StudentslistpageState extends State<Studentslistpage> {
     }
     super.dispose();
   }
+
+  Future<void> uploadToFirebase()async{
+    setState(() => isUploading = true);
+    try{
+      final classRef = FirebaseFirestore.instance.collection('attendance').doc('manual_attendance').collection('class_roll_numbers').doc(widget.className);
+      Map<String,dynamic> studentData = {};
+      for(int i = 0;i < widget.students.length; i++){
+        studentData[widget.students[i]] = controller[i].text.trim();
+      }
+      await classRef.set({
+        'students' : studentData,
+        'updated_at' : FieldValue.serverTimestamp()
+      });
+      Fluttertoast.showToast(msg: "Roll numbers updated successfully!",toastLength: Toast.LENGTH_SHORT,gravity: ToastGravity.TOP,backgroundColor: Colors.green);
+      Navigator.pop(context);
+    }catch(e){
+      Fluttertoast.showToast(msg: "Error: $e",gravity: ToastGravity.TOP,toastLength: Toast.LENGTH_SHORT);
+    } finally {
+      setState(() => isUploading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(backgroundColor: Colors.blueGrey.shade900,
@@ -50,7 +75,7 @@ class _StudentslistpageState extends State<Studentslistpage> {
                     );
                               }, separatorBuilder: (context,index)=>
                   Divider(thickness: 0.4,indent: 0,endIndent: 0,height: 0,), itemCount: widget.students.length),
-                ),
+            ),
     Center(
     child:
     ElevatedButton(style: ElevatedButton.styleFrom(
@@ -58,7 +83,9 @@ class _StudentslistpageState extends State<Studentslistpage> {
     foregroundColor: Colors.white,
     shape: RoundedRectangleBorder(side: BorderSide(width: 2,color: Colors.white),borderRadius: BorderRadius.circular(10))
     ),
-    onPressed: (){}, child: Text("SUBMIT")),
+    onPressed: isUploading ? null : uploadToFirebase,
+        child: isUploading ? CircularProgressIndicator(color: Colors.white,) :
+        Text("SUBMIT")),
     ),
             SizedBox(height: 20.0,),
           ],

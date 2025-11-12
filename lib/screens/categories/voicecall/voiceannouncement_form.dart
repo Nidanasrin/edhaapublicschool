@@ -22,6 +22,7 @@ class _VoiceannouncementFormState extends State<VoiceannouncementForm> {
   final formkey = GlobalKey<FormState>();
   String? filePath;
   bool isUploading = false;
+  bool isRecording = false;
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
   TextEditingController submittedByController = TextEditingController();
@@ -38,6 +39,11 @@ class _VoiceannouncementFormState extends State<VoiceannouncementForm> {
       final path =
           '${dir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
       filePath = path;
+      await record.start(
+        const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: 128000, sampleRate: 44100),
+        path: filePath!,
+      );
+      setState(() => isRecording = true);
       debugPrint('Recording started: $path');
       ScaffoldMessenger.of(
         context,
@@ -51,6 +57,7 @@ class _VoiceannouncementFormState extends State<VoiceannouncementForm> {
 
   Future<void> stopRecording() async {
     filePath = await record.stop();
+    setState(() => isRecording = false);
     debugPrint('Recording saved at :$filePath');
     ScaffoldMessenger.of(
       context,
@@ -72,96 +79,119 @@ class _VoiceannouncementFormState extends State<VoiceannouncementForm> {
   void voicebox() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              "assets/images/microphone-black-shape.png",
-              height: 50,
-              width: 50,
-            ),
-            SizedBox(height: 10.0),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              alignment: WrapAlignment.center,
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    side: BorderSide(color: Colors.grey),
-                  ),
-                  onPressed: () {
-                    startRecording();
-                  },
-                  child: Text("RECORD"),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    foregroundColor: Colors.black,
-                    side: BorderSide(color: Colors.grey),
-                  ),
-                  onPressed: () {
-                    startRecording();
-                  },
-                  child: Text("STOP"),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    foregroundColor: Colors.black,
-                    side: BorderSide(color: Colors.grey),
-                  ),
-                  onPressed: () {
-                    playRecording();
-                  },
-                  child: Text("PLAY"),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    side: BorderSide(color: Colors.grey),
-                  ),
-                  onPressed: () {
-                    stopPlaying();
-                  },
-                  child: Text("STOP PLAYING RECORDING"),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
+      builder: (context) {
+        return StatefulBuilder(
+            builder: (context, setStateDialog) {
+              return AlertDialog(
                 backgroundColor: Colors.white,
-                foregroundColor: Colors.green,
-                side: BorderSide(color: Colors.green),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text("CONFIRM"),
-            ),
-          ],
-        ),
-      ),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      "assets/images/microphone-black-shape.png",
+                      height: 50,
+                      width: 50,
+                    ),
+                    const SizedBox(height: 10.0),
+                    if (isRecording)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.fiber_manual_record, color: Colors.red),
+                          SizedBox(width: 6),
+                          Text("Recording...", style: TextStyle(color: Colors
+                              .red)),
+                        ],
+                      ),
+                    SizedBox(height: 10.0),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            side: BorderSide(color: Colors.grey),
+                          ),
+                          onPressed: isRecording
+                              ? null
+                              : () async {
+                            await startRecording();
+                            setStateDialog(() => isRecording = true);
+                          },
+                          child: Text("RECORD"),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            foregroundColor: Colors.black,
+                            side: BorderSide(color: Colors.grey),
+                          ),
+                          onPressed: !isRecording
+                              ? null
+                              : () async {
+                            await stopRecording();
+                            setStateDialog(() => isRecording = false);
+                          },
+                          child: Text("STOP"),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            foregroundColor: Colors.black,
+                            side: BorderSide(color: Colors.grey),
+                          ),
+                          onPressed: () {
+                            playRecording();
+                          },
+                          child: Text("PLAY"),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            side: BorderSide(color: Colors.grey),
+                          ),
+                          onPressed: () {
+                            stopPlaying();
+                          },
+                          child: Text("STOP PLAYING RECORDING"),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.green,
+                        side: BorderSide(color: Colors.green),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text("CONFIRM"),
+                    ),
+                  ],
+                ),
+              );
+            });
+      }
     );
   }
 
@@ -172,7 +202,10 @@ class _VoiceannouncementFormState extends State<VoiceannouncementForm> {
       Fluttertoast.showToast(msg: "Please fill all text fields");
       return;
     }
-
+    if (filePath == null || !File(filePath!).existsSync()) {
+      Fluttertoast.showToast(msg: "Please record your voice before submitting");
+      return;
+    }
     setState(() => isUploading = true);
     try {
       String? audioUrl;
