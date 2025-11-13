@@ -13,6 +13,7 @@ class DailyAttendence extends StatefulWidget {
 class _DailyAttendenceState extends State<DailyAttendence> {
   TextEditingController dateController = TextEditingController();
   String? selectedValue;
+  bool isUploading = false;
   Future<void> pickDate(TextEditingController controller,bool isFromDate)async{
 DateTime? pickDate = await showDatePicker(context: context,
     initialDate: DateTime.now(),
