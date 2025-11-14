@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:raynottschool/screens/categories/attendence/manual_attendance/daily_attendance/dailyattendance_details3.dart';
 import 'package:signature/signature.dart';
@@ -121,6 +123,79 @@ class _DailyattendanceDetails2State extends State<DailyattendanceDetails2> {
     );
   }
 
+  Future<void> submitAttendance() async {
+    try {
+      String? signatureUrl;
+      if (savedSignature != null) {
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('attendance_signature')
+            .child("${widget.className}_${widget.date}.png");
+
+        await storageRef.putData(savedSignature!);
+        signatureUrl = await storageRef.getDownloadURL();
+      }
+
+      // 2️⃣ Prepare absentee list
+      Map<String, dynamic> absenteesData = {};
+
+      for (int index in widget.absentees) {
+        int roll = index + 1;
+        absenteesData[roll.toString()] = widget.students[index];
+      }
+
+      // 3️⃣ Store attendance in Firestore
+      await FirebaseFirestore.instance
+          .collection("attendance")
+          .doc('manual_attendance')
+          .collection('daile_attendance')
+          .doc(widget.className)
+          .collection("dates")
+          .doc(widget.date)
+          .set({
+            "className": widget.className,
+            "date": widget.date,
+            "totalStudents": widget.students.length,
+            "absentCount": widget.absentees.length,
+            "presentCount": widget.students.length - widget.absentees.length,
+            "absentees": absenteesData,
+            "signatureUrl": signatureUrl ?? "",
+            "timestamp": FieldValue.serverTimestamp(),
+          });
+
+      // 4️⃣ Success Message
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Success"),
+          content: Text("Attendance submitted successfully!"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DailyattendanceDetails3(
+                      absentees: widget.absentees,
+                      students: widget.students,
+                    ),
+                  ),
+                );
+              },
+              child: Text("OK"),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      print("Error submitting attendance: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -235,21 +310,56 @@ class _DailyattendanceDetails2State extends State<DailyattendanceDetails2> {
                       side: BorderSide(color: Colors.white, width: 2),
                     ),
                     onPressed: () {
-                      showDialog(context: context, builder: (context)=>AlertDialog(
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        title: Text("Message",style: TextStyle(fontSize: 19,fontWeight: FontWeight.bold),),
-                        content: Text("Attendance Submitted Successfully",style: TextStyle(fontSize: 16),),
-                        actions: [
-                          TextButton(onPressed: (){
-                            Navigator.pop(context);
-                          }, child: Text("CANCEL",style: TextStyle(color: Colors.indigo.shade900),)),
-                          TextButton(onPressed: (){
-                          Navigator.pop(context);
-                            Navigator.push(context, MaterialPageRoute(builder: (context)=> DailyattendanceDetails3(absentees: widget.absentees, students: widget.students,)));
-
-                          }, child: Text("OK",style: TextStyle(color: Colors.indigo.shade900),))],
-                      ));
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          title: Text(
+                            "Message",
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          content: Text(
+                            "Attendance Submitted Successfully",
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              child: Text(
+                                "CANCEL",
+                                style: TextStyle(color: Colors.indigo.shade900),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        DailyattendanceDetails3(
+                                          absentees: widget.absentees,
+                                          students: widget.students,
+                                        ),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                "OK",
+                                style: TextStyle(color: Colors.indigo.shade900),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
                     },
                     child: Text(
                       "SUBMIT",
