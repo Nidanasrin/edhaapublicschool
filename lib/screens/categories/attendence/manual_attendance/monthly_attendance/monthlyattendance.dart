@@ -22,7 +22,7 @@ class _MonthlyattendanceState extends State<Monthlyattendance> {
     }
   }
 
-  String? selectedValue;
+  String? selectedValue = 'NURSERY';
   String? selectedMonth;
   String? selectedYear;
 List<String> month = [
@@ -53,6 +53,16 @@ List<String> month = [
     "2016",
     "2015",
   ];
+
+  @override
+  void initState() {
+    super.initState();
+
+    // GET CURRENT MONTH + YEAR
+    DateTime now = DateTime.now();
+    selectedMonth = month[now.month - 1]; // index starts from 0
+    selectedYear = now.year.toString();
+  }
 
   @override
   Widget build(BuildContext context) {

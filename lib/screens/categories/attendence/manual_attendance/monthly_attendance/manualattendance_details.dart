@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -21,15 +22,17 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
   late int month;
   late int year;
 
+  List<DateTime> leaveDates = [];
+  bool showSubmitButton = false;
+
   @override
   void initState() {
     super.initState();
     _parseDate(widget.date);
   }
 
-  // Parse "October 2025" into month and year
   void _parseDate(String date) {
-    final parts = date.split(" "); // ["October", "2025"]
+    final parts = date.split(" ");
     final monthName = parts[0];
     year = int.parse(parts[1]);
     month = _monthStringToNumber(monthName);
@@ -70,16 +73,10 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
   @override
   Widget build(BuildContext context) {
     final totalDays = DateTime(year, month + 1, 0).day;
-    final totalHolidays = 3; // Example
+    final totalHolidays = 3;
     final totalWorkingDays = totalDays - totalHolidays;
-    final totalPresentDays = 27;
-    final totalAbsentDays = totalWorkingDays - totalPresentDays;
-
-    final absentDates = [
-      DateTime(year, month, 1),
-      DateTime(year, month, 2),
-      DateTime(year, month, 7),
-    ];
+    final totalPresentDays = totalWorkingDays - leaveDates.length;
+    final totalAbsentDays = leaveDates.length;
 
     return Scaffold(
       backgroundColor: Colors.blueGrey.shade900,
@@ -93,7 +90,6 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
         child: Column(
           children: [
             Container(
-              height: 350,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 color: Colors.white,
@@ -106,52 +102,100 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
                 headerStyle: HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
-                  titleTextStyle:
-                  TextStyle(color: Colors.black, fontWeight: FontWeight.bold,fontSize: 17),
-                  leftChevronIcon: Icon(Icons.chevron_left, color: Colors.black,),
-                  rightChevronIcon: Icon(Icons.chevron_right, color: Colors.black),
-                ),
-                calendarStyle: CalendarStyle(
-                  outsideDaysVisible: false,
-                  todayDecoration: BoxDecoration(
-                    color: Colors.blueAccent,
-                    shape: BoxShape.circle,
-                  ),
-                  defaultDecoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                  ),
-                  markerDecoration: BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
+                  titleTextStyle: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 17),
+                  leftChevronIcon:
+                  Icon(Icons.chevron_left, color: Colors.black),
+                  rightChevronIcon:
+                  Icon(Icons.chevron_right, color: Colors.black),
                 ),
                 calendarBuilders: CalendarBuilders(
-                  markerBuilder: (context, date, events) {
-                    if (absentDates.any((d) =>
+                  defaultBuilder: (context, date, _) {
+                    bool isLeave = leaveDates.any((d) =>
                     d.day == date.day &&
                         d.month == date.month &&
-                        d.year == date.year)) {
-                      return Container(
-                        margin: EdgeInsets.all(6),
-                        decoration:
-                        BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                        alignment: Alignment.center,
-                        child: Text(date.day.toString(),style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
-                      );
+                        d.year == date.year);
+
+                    bool isHoliday = date.weekday == DateTime.sunday;
+
+                    bool isToday = date.day == DateTime.now().day &&
+                        date.month == DateTime.now().month &&
+                        date.year == DateTime.now().year;
+
+                    if (isToday) {
+                      return _buildCircle(date.day, Colors.blue);
                     }
-                    return null;
+
+                    if (isHoliday) {
+                      return _buildCircle(date.day, Colors.redAccent);
+                    }
+
+                    if (isLeave) {
+                      return _buildCircle(date.day, Colors.red);
+                    }
+
+                    return Center(
+                      child: Text(
+                        date.day.toString(),
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    );
                   },
                 ),
+                selectedDayPredicate: (day) => leaveDates.any((d) =>
+                d.day == day.day &&
+                    d.month == day.month &&
+                    d.year == day.year),
+                onDaySelected: (selectedDay, _) {
+                  if (selectedDay.weekday == DateTime.sunday) return;
+                  if (selectedDay.isAfter(DateTime.now())) return;
+
+                  setState(() {
+                    bool alreadyLeave = leaveDates.any((d) =>
+                    d.day == selectedDay.day &&
+                        d.month == selectedDay.month);
+
+                    if (alreadyLeave) {
+                      leaveDates.removeWhere(
+                              (d) => d.day == selectedDay.day);
+                    } else {
+                      leaveDates.add(selectedDay);
+                    }
+
+                    showSubmitButton = leaveDates.isNotEmpty;
+                  });
+                },
               ),
             ),
+
             const SizedBox(height: 30),
             _buildSummaryRow("Total Days", totalDays),
             _buildSummaryRow("Total Holidays", totalHolidays),
             _buildSummaryRow("Total Working Days", totalWorkingDays),
             _buildSummaryRow("Total Present Days", totalPresentDays),
             _buildSummaryRow("Total Absent Days", totalAbsentDays),
+
             const SizedBox(height: 30),
             _buildActionButtons(),
+            if (showSubmitButton)
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                    padding:
+                    EdgeInsets.symmetric(horizontal: 35, vertical: 12),
+                  ),
+                  onPressed: _submitAttendance,
+                  child: Text(
+                    "Submit",
+                    style: TextStyle(color: Colors.white, fontSize: 16,fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -167,7 +211,8 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
             child: Text(label,
                 style: TextStyle(color: Colors.white, fontSize: 17)),
           ),
-          Text(": $value", style: TextStyle(color: Colors.white, fontSize: 17)),
+          Text(": $value",
+              style: TextStyle(color: Colors.white, fontSize: 17)),
         ],
       ),
     );
@@ -194,4 +239,54 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
       ],
     );
   }
+
+  void _submitAttendance() async {
+    final formattedDates = leaveDates
+        .map((d) => "${d.year}-${d.month}-${d.day}")
+        .toList();
+
+    await FirebaseFirestore.instance
+    .collection('attendance')
+        .doc("manual_attendance")
+    .collection('monthly_attendance')
+        .doc(widget.studentName + "_${widget.date}")
+        .set({
+      "studentName": widget.studentName,
+      "month": widget.date,
+      "leaveDates": formattedDates,
+      "submittedAt": DateTime.now(),
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Success",style: TextStyle(fontSize: 20),),
+         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        content:
+        Text("Monthly attendance submitted successfully!",style: TextStyle(fontSize: 15),),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("OK"),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+Widget _buildCircle(int day, Color color) {
+  return Container(
+    margin: EdgeInsets.all(6),
+    decoration: BoxDecoration(
+      color: color,
+      shape: BoxShape.circle,
+    ),
+    alignment: Alignment.center,
+    child: Text(
+      day.toString(),
+      style:
+      TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    ),
+  );
 }

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:raynottschool/screens/categories/attendence/manual_attendance/daily_attendance/dailyattendance_details3.dart';
 import 'package:signature/signature.dart';
 
@@ -122,6 +123,12 @@ class _DailyattendanceDetails2State extends State<DailyattendanceDetails2> {
       ),
     );
   }
+  String get formattedDate {
+     DateTime parsed = DateFormat('dd/MM/yyyy').parse(widget.date);
+    return DateFormat('dd-MM-yyyy').format(parsed);
+  }
+
+String get displayDate => widget.date;
 
   Future<void> submitAttendance() async {
     try {
@@ -147,11 +154,11 @@ class _DailyattendanceDetails2State extends State<DailyattendanceDetails2> {
       // 3️⃣ Store attendance in Firestore
       await FirebaseFirestore.instance
           .collection("attendance")
-          .doc('manual_attendance')
-          .collection('daile_attendance')
+      .doc('manual_attendance')
+          .collection('daily_attendance')
           .doc(widget.className)
-          .collection("dates")
-          .doc(widget.date)
+          .collection(formattedDate)
+      .doc('attendance')
           .set({
             "className": widget.className,
             "date": widget.date,
@@ -162,32 +169,6 @@ class _DailyattendanceDetails2State extends State<DailyattendanceDetails2> {
             "signatureUrl": signatureUrl ?? "",
             "timestamp": FieldValue.serverTimestamp(),
           });
-
-      // 4️⃣ Success Message
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text("Success"),
-          content: Text("Attendance submitted successfully!"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => DailyattendanceDetails3(
-                      absentees: widget.absentees,
-                      students: widget.students,
-                    ),
-                  ),
-                );
-              },
-              child: Text("OK"),
-            ),
-          ],
-        ),
-      );
     } catch (e) {
       print("Error submitting attendance: $e");
       ScaffoldMessenger.of(
@@ -312,7 +293,7 @@ class _DailyattendanceDetails2State extends State<DailyattendanceDetails2> {
                     onPressed: () {
                       showDialog(
                         context: context,
-                        builder: (context) => AlertDialog(
+                        builder: (dialogCtx) => AlertDialog(
                           backgroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -331,7 +312,7 @@ class _DailyattendanceDetails2State extends State<DailyattendanceDetails2> {
                           actions: [
                             TextButton(
                               onPressed: () {
-                                Navigator.pop(context);
+                                Navigator.pop(dialogCtx);
                               },
                               child: Text(
                                 "CANCEL",
@@ -339,12 +320,14 @@ class _DailyattendanceDetails2State extends State<DailyattendanceDetails2> {
                               ),
                             ),
                             TextButton(
-                              onPressed: () {
-                                Navigator.pop(context);
+                              onPressed: ()async {
+                                Navigator.pop(dialogCtx);
+                                await submitAttendance();
+                                if(!mounted) return;
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
+                                    builder: (_) =>
                                         DailyattendanceDetails3(
                                           absentees: widget.absentees,
                                           students: widget.students,
