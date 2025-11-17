@@ -70,6 +70,45 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
     }
   }
 
+  bool isUploading = false;
+
+  void _submitAttendance() async {
+    final formattedDates = leaveDates
+        .map((d) => "${d.year}-${d.month}-${d.day}")
+        .toList();
+
+    await FirebaseFirestore.instance
+        .collection('attendance')
+        .doc("manual_attendance")
+        .collection('monthly_attendance')
+        .doc(widget.studentName + "_${widget.date}")
+        .set({
+      "studentName": widget.studentName,
+      "month": widget.date,
+      "leaveDates": formattedDates,
+      "submittedAt": DateTime.now(),
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) =>
+          AlertDialog(
+            title: Text("Success", style: TextStyle(fontSize: 20),),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(5)),
+            content:
+            Text("Monthly attendance submitted successfully!",
+              style: TextStyle(fontSize: 15),),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("OK"),
+              )
+            ],
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalDays = DateTime(year, month + 1, 0).day;
@@ -120,9 +159,15 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
 
                     bool isHoliday = date.weekday == DateTime.sunday;
 
-                    bool isToday = date.day == DateTime.now().day &&
-                        date.month == DateTime.now().month &&
-                        date.year == DateTime.now().year;
+                    bool isToday = date.day == DateTime
+                        .now()
+                        .day &&
+                        date.month == DateTime
+                            .now()
+                            .month &&
+                        date.year == DateTime
+                            .now()
+                            .year;
 
                     if (isToday) {
                       return _buildCircle(date.day, Colors.blue);
@@ -144,10 +189,11 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
                     );
                   },
                 ),
-                selectedDayPredicate: (day) => leaveDates.any((d) =>
-                d.day == day.day &&
-                    d.month == day.month &&
-                    d.year == day.year),
+                selectedDayPredicate: (day) =>
+                    leaveDates.any((d) =>
+                    d.day == day.day &&
+                        d.month == day.month &&
+                        d.year == day.year),
                 onDaySelected: (selectedDay, _) {
                   if (selectedDay.weekday == DateTime.sunday) return;
                   if (selectedDay.isAfter(DateTime.now())) return;
@@ -185,14 +231,17 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5)),
                     padding:
                     EdgeInsets.symmetric(horizontal: 35, vertical: 12),
                   ),
                   onPressed: _submitAttendance,
                   child: Text(
                     "Submit",
-                    style: TextStyle(color: Colors.white, fontSize: 16,fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -201,6 +250,7 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
       ),
     );
   }
+}
 
   Widget _buildSummaryRow(String label, int value) {
     return Padding(
@@ -240,40 +290,6 @@ class _ManualattendanceDetailsState extends State<ManualattendanceDetails> {
     );
   }
 
-  void _submitAttendance() async {
-    final formattedDates = leaveDates
-        .map((d) => "${d.year}-${d.month}-${d.day}")
-        .toList();
-
-    await FirebaseFirestore.instance
-    .collection('attendance')
-        .doc("manual_attendance")
-    .collection('monthly_attendance')
-        .doc(widget.studentName + "_${widget.date}")
-        .set({
-      "studentName": widget.studentName,
-      "month": widget.date,
-      "leaveDates": formattedDates,
-      "submittedAt": DateTime.now(),
-    });
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Success",style: TextStyle(fontSize: 20),),
-         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-        content:
-        Text("Monthly attendance submitted successfully!",style: TextStyle(fontSize: 15),),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("OK"),
-          )
-        ],
-      ),
-    );
-  }
-}
 
 Widget _buildCircle(int day, Color color) {
   return Container(

@@ -16,6 +16,7 @@ class Monthlyattendance2 extends StatefulWidget {
 class _Monthlyattendance2State extends State<Monthlyattendance2> {
 String searchQuery = "";
 
+
   @override
   Widget build(BuildContext context) {
     final filteredStudents= widget.students.where((student)=> student.toLowerCase().contains(searchQuery.toLowerCase())).toList();

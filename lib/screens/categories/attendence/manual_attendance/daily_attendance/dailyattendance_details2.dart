@@ -291,6 +291,10 @@ String get displayDate => widget.date;
                       side: BorderSide(color: Colors.white, width: 2),
                     ),
                     onPressed: () {
+                      if(savedSignature == null){
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please add your signature before submitting'),backgroundColor: Colors.red,));
+                        return;
+                      }
                       showDialog(
                         context: context,
                         builder: (dialogCtx) => AlertDialog(
@@ -312,6 +316,10 @@ String get displayDate => widget.date;
                           actions: [
                             TextButton(
                               onPressed: () {
+
+
+
+
                                 Navigator.pop(dialogCtx);
                               },
                               child: Text(
