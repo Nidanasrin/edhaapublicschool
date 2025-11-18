@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:raynottschool/dummydata/datas.dart';
 
@@ -20,58 +21,71 @@ class _AttendanceTableState extends State<AttendanceTable> {
   };
   @override
   Widget build(BuildContext context) {
+    final dateId = '${DateTime.now().year}-${DateTime.now().month}-${DateTime.now().day}';
     return Scaffold(backgroundColor: Colors.blueGrey.shade900,
-       body:  Padding(
-         padding: const EdgeInsets.only(top: 60.0),
-         child: Card(
-                elevation: 3,
-                color: Colors.blueGrey.shade900,
-                margin: EdgeInsets.symmetric(vertical: 8),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    headingRowColor: MaterialStateProperty.all(Colors.blueGrey.shade900),
-                      border: TableBorder.all(color: Colors.white),
+       body:   Padding(
+        padding: const EdgeInsets.only(top: 60.0),
+    child: StreamBuilder(
+    stream: FirebaseFirestore.instance
+    .collection("attendance_reports")
+        .doc(dateId)
+        .collection("classes")
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData) {
+        return const Center(
+            child: CircularProgressIndicator(color: Colors.white));
+      }
 
-                      columns:[
-                        DataColumn(
-                  label: Text("Class Name",
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-               DataColumn(
-                 label: Text("Total Students",
-                     style: TextStyle(
-                         color: Colors.white, fontWeight: FontWeight.bold)),
-               ),
-               DataColumn(
-                 label: Text("Absent Students",
-                     style: TextStyle(
-                         color: Colors.white, fontWeight: FontWeight.bold)),
-               ),
-               DataColumn(
-                 label: Text("Present Students",
-                     style: TextStyle(
-                         color: Colors.white, fontWeight: FontWeight.bold)),
-               ),
-               ], rows: classStudents.entries.map((entry){
-                   final className = entry.key;
-                   final students = entry.value;
-                   final total = students.length;
-                   final absent = absentStudents[className] ?? 0;
-                   final present = total - absent;
-                   return DataRow(cells: [
-                     DataCell(Text(className,
-                       style: const TextStyle(color: Colors.white))),
-                     DataCell(Text(total.toString(),
-                         style: const TextStyle(color: Colors.white))),
-                     DataCell(Text(absent.toString(),
-                         style: const TextStyle(color: Colors.white))),
-                     DataCell(Text(present.toString(),
-                         style: const TextStyle(color: Colors.white))),
-                   ]);
-                  }).toList()),
-                )
+      final docs = snapshot.data!.docs;
+
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+            headingRowColor: MaterialStateProperty.all(
+                Colors.blueGrey.shade900),
+            border: TableBorder.all(color: Colors.white),
+
+            columns: [
+              DataColumn(
+                label: Text("Class Name",
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+              DataColumn(
+                label: Text("Total Students",
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+              DataColumn(
+                label: Text("Absent Students",
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+              DataColumn(
+                label: Text("Present Students",
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ], rows: classStudents.entries.map((entry) {
+          final className = entry.key;
+          final students = entry.value;
+          final total = students.length;
+          final absent = absentStudents[className] ?? 0;
+          final present = total - absent;
+          return DataRow(cells: [
+            DataCell(Text(className,
+                style: const TextStyle(color: Colors.white))),
+            DataCell(Text(total.toString(),
+                style: const TextStyle(color: Colors.white))),
+            DataCell(Text(absent.toString(),
+                style: const TextStyle(color: Colors.white))),
+            DataCell(Text(present.toString(),
+                style: const TextStyle(color: Colors.white))),
+          ]);
+        }).toList()),
+      );
+    }
             ),
        ),
 
