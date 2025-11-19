@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class AttendenceSettings extends StatefulWidget {
@@ -9,14 +10,39 @@ class AttendenceSettings extends StatefulWidget {
 
 class _AttendenceSettingsState extends State<AttendenceSettings> {
   final TextEditingController controller = TextEditingController();
+bool isLoading = false;
 
-  void msgBox(){
+  Future<void> uploadToFirebase()async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      await FirebaseFirestore.instance
+          .collection('attendance')
+          .doc('manual_attendance')
+          .collection('attendance_settings')
+          .doc('daily_attendance')
+          .set({
+        'attendance': controller.text,
+        'updatedAt': DateTime.now()
+      });
+      setState(() {
+        isLoading = false;
+      });
+      msgBox("Attendance Settings Submitted Successfully");
+    }catch (e) {
+      setState(() => isLoading = false);
+      msgBox("Error uploading data: $e");
+    }
+  }
+
+  void msgBox(String message){
     showDialog(context: context, builder: (context)=>
     AlertDialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
       title: Text("Message",style: TextStyle(fontWeight: FontWeight.bold),),
-      content: Text("Attendance Settings Submitted Successfully",style: TextStyle(fontSize: 16),),
+      content: Text(message,style: TextStyle(fontSize: 16),),
       actions: [
         TextButton(onPressed: (){
           Navigator.pop(context);
@@ -55,6 +81,9 @@ class _AttendenceSettingsState extends State<AttendenceSettings> {
               ),
 
             SizedBox(height: 20,),
+            isLoading
+                ? const CircularProgressIndicator(color: Colors.white)
+                :
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,foregroundColor: Colors.white,
@@ -62,8 +91,9 @@ class _AttendenceSettingsState extends State<AttendenceSettings> {
               ),
                 onPressed: () {
     if (controller.text.isNotEmpty) {
-    msgBox();
+      uploadToFirebase();
     }
+    msgBox("Please enter a number");
     }, child: Text("SUBMIT"))
           ],
         ),
