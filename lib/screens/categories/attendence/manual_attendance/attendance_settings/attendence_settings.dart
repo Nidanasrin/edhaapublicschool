@@ -92,8 +92,9 @@ bool isLoading = false;
                 onPressed: () {
     if (controller.text.isNotEmpty) {
       uploadToFirebase();
+    }else {
+      msgBox("Please enter a number");
     }
-    msgBox("Please enter a number");
     }, child: Text("SUBMIT"))
           ],
         ),
