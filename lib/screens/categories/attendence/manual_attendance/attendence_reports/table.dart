@@ -38,11 +38,17 @@ class _AttendanceTableState extends State<AttendanceTable> {
       }
 
       final docs = snapshot.data!.docs;
+      if (docs.isEmpty) {
+        return const Center(
+          child: Text("No attendance data found",
+              style: TextStyle(color: Colors.white, fontSize: 16)),
+        );
+      }
 
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-            headingRowColor: MaterialStateProperty.all(
+            headingRowColor: WidgetStateProperty.all(
                 Colors.blueGrey.shade900),
             border: TableBorder.all(color: Colors.white),
 
@@ -67,11 +73,11 @@ class _AttendanceTableState extends State<AttendanceTable> {
                     style: TextStyle(
                         color: Colors.white, fontWeight: FontWeight.bold)),
               ),
-            ], rows: classStudents.entries.map((entry) {
-          final className = entry.key;
-          final students = entry.value;
-          final total = students.length;
-          final absent = absentStudents[className] ?? 0;
+            ], rows: docs.map((doc) {
+              final data = doc.data() as Map<String,dynamic>;
+          final className = doc.id;
+          final total = data['totalStudents'] ?? 0;
+          final absent = data['absentStudents'] ?? 0;
           final present = total - absent;
           return DataRow(cells: [
             DataCell(Text(className,

@@ -19,6 +19,16 @@ class _AttendanceReportsState extends State<AttendanceReports> {
       controller.text = formattedDate;
     }
   }
+
+
+  @override
+  void initState() {
+    super.initState();
+
+    final now = DateTime.now();
+    dateController.text = "${now.day}/${now.month}/${now.year}";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

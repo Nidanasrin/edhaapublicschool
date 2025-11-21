@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -16,6 +17,7 @@ class _SetHoliday2State extends State<SetHoliday2> {
   late int totalDays;
   int totalHolidays = 0;
   int totalWorkingDays = 0;
+bool isLoading = false;
 
   final Set<DateTime> selectedHolidays = {};
   final Map<String, int> monthMap = {
@@ -32,6 +34,33 @@ class _SetHoliday2State extends State<SetHoliday2> {
     "November": 11,
     "December": 12,
   };
+
+  Future<void> uploadToFirebase()async{
+    List<String> formattedDays = selectedHolidays.map((d) {
+      return '${d.year}-${d.month}-${d.day}';
+    }).toList();
+    setState(() {
+      isLoading = true;
+    });
+    await FirebaseFirestore.instance
+    .collection('attendance')
+    .doc('manual_attendance')
+    .collection('set_holidays')
+    .doc('${widget.month}_${widget.year}')
+    .set({
+      'month' : widget.month,
+      'year' : widget.year,
+      'totalDays' : totalDays,
+      'totalHolidays' : totalHolidays,
+      'totalWorkingDays' : totalWorkingDays,
+      'holidays' : formattedDays,
+      'savedAt' : DateTime.now()
+    });
+    setState(() {
+      isLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Holidays saved successfully!')));
+  }
 
   @override
   void initState() {
@@ -194,9 +223,7 @@ class _SetHoliday2State extends State<SetHoliday2> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Holidays saved!")),
-                );
+               uploadToFirebase();
               },
               child: const Text("SUBMIT"),
             ),

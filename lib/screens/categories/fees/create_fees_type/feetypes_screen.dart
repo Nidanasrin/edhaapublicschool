@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class EnterFeesTypesScreen extends StatefulWidget {
@@ -18,7 +19,7 @@ class _EnterFeesTypesScreenState extends State<EnterFeesTypesScreen> {
   }
 
   /// Collect values from all fields
-  void submit() {
+  void submit()async {
     List<String> feeTypes = controllers
         .map((c) => c.text.trim())
         .where((text) => text.isNotEmpty)
@@ -26,6 +27,15 @@ class _EnterFeesTypesScreenState extends State<EnterFeesTypesScreen> {
 
     // for now just print
     print("Submitted Fees: $feeTypes");
+    // if(feeTypes.isEmpty){
+    //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please enter at least one fees type')));
+    //   return;
+    // }try{
+    //   await FirebaseFirestore.instance
+    //       .collection('Fees')
+    //       .doc('create_fees_type')
+    //       .collection('')
+    // }
 
     Navigator.pop(context, feeTypes); // send list back if needed
   }

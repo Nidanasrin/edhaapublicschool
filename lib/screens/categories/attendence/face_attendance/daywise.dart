@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class Daywise extends StatefulWidget {
@@ -24,6 +25,35 @@ String? selectedValue;
   void initState() {
     super.initState();
     selectedValue = "Staff";
+  }
+
+  String convertToFirebase(String date){
+    final parts = date.split('/');
+    return '${parts[2]}-${parts[1]}-${parts[0]}';
+  }
+
+  Future<void> fetchData()async{
+    if(dateController.text.isEmpty || selectedValue == null){
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please select date and category')));
+      return;
+    }
+      String formattedDate = convertToFirebase(dateController.text);
+      try{
+        DocumentSnapshot snapshot = await FirebaseFirestore.instance
+            .collection('attendance_reports')
+            .doc(formattedDate)
+            .collection(selectedValue!.toLowerCase())
+            .doc('summary')
+            .get();
+        if(!snapshot.exists){
+          msgBox();
+          return;
+        }
+        var data = snapshot.data() as Map<String,dynamic>;
+        print('Fetched Data : $data');
+    }catch(e){
+        print('Error : $e');
+      }
   }
 
   void msgBox(){
@@ -88,7 +118,17 @@ String? selectedValue;
                     ),backgroundColor: Colors.blue.shade900,
                     foregroundColor: Colors.white
                 ),
-                onPressed: (){
+                onPressed: ()async {
+                  if (dateController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Please Select Date")));
+                    return;
+                  }
+
+                  consolidateBox(); // show popup
+
+                  // You can also fetch consolidated data
+                  await fetchData();
                 }, child: Text("SUBMIT")),
           )
             ],
