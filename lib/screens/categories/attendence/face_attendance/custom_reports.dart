@@ -431,8 +431,6 @@ class _CustomReportsState extends State<CustomReports> {
                           userType != null) {
                         uploadToFirebase();
                         // Navigator.push(context, MaterialPageRoute(builder: (context)=> ));
-                      } else {
-                        msgBox();
                       }
                     },
                     child: Text("SUBMIT"),

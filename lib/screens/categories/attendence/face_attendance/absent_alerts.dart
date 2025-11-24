@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:raynottschool/screens/categories/attendence/face_attendance/settings.dart';
 
@@ -23,11 +24,41 @@ class _AbsentAlertsState extends State<AbsentAlerts> {
       content: Text("Notification Settings Updated."),
       actions: [
         TextButton(onPressed: (){
-          Navigator.push(context, MaterialPageRoute(builder: (context)=> Settings()));
+          Navigator.pop(context);
+          Navigator.pop(context);
         }, child: Text("OK",style: TextStyle(color: Colors.indigo.shade900),))
       ],
     ));
 
+  }
+  @override
+  void initState() {
+    super.initState();
+    loadSettings();
+  }
+
+  Future<void> loadSettings()async{
+    DocumentSnapshot snap = await FirebaseFirestore.instance
+        .collection('alert_settings')
+        .doc('alerts')
+        .get();
+    if(snap.exists){
+      setState(() {
+        isNotificationOn = snap['notifications'];
+        isCallOn = snap['calls'];
+        isSmsOn = snap['sms'];
+      });
+    }
+  }
+  Future<void> saveSettings()async{
+    await FirebaseFirestore.instance
+        .collection('alert_settings')
+        .doc('alerts')
+        .set({
+      'notifications' : isNotificationOn,
+      'calls' : isCallOn,
+      'sms' : isSmsOn
+    });
   }
   @override
   Widget build(BuildContext context) {
@@ -86,7 +117,8 @@ class _AbsentAlertsState extends State<AbsentAlerts> {
                       ),backgroundColor: Colors.transparent,
                       foregroundColor: Colors.white
                   ),
-                  onPressed: (){
+                  onPressed: ()async{
+                    await saveSettings();
                     msgbox();
                   }, child: Text("SUBMIT")),
             )
