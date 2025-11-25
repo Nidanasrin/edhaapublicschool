@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:raynottschool/dummydata/datas.dart';
 import 'package:raynottschool/screens/categories/attendence/face_attendance/cutofftime_2.dart';
@@ -16,6 +17,7 @@ class Setcutofftime extends StatefulWidget {
 class _SetcutofftimeState extends State<Setcutofftime> {
   String? selectedValue;
   String? selectedClass;
+  bool isLoading = false;
   Map<String,TimeOfDay?> selectedTimes = {};
 
   Future<void> pickTime(String name) async {
@@ -48,6 +50,53 @@ class _SetcutofftimeState extends State<Setcutofftime> {
     }
   }
 
+  void msgBox() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        title: Text("Message"),
+        content: Text("Cut Off Time Updated Successfully"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: Text("OK", style: TextStyle(color: Colors.indigo.shade900)),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Future<void> saveToFirebase()async{
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      Map<String, String> dataToSave = {};
+      selectedTimes.forEach((key, value) {
+        if (value != null) {
+          dataToSave[key] = value != null ? value!.format(context) : "";
+        }
+      });
+      await FirebaseFirestore.instance
+          .collection('attendance')
+          .doc('face_attendance')
+          .collection('Cut Off Time')
+          .doc(selectedValue)
+          .set(dataToSave);
+
+      msgBox();
+    } catch (e) {
+      print('Error : $e');
+    } finally {
+      isLoading = false;
+    }
+  }
   void navigateBaseOnSelection(){
     TextEditingController timeController = TextEditingController();
 

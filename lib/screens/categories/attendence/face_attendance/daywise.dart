@@ -151,13 +151,13 @@ class _DaywiseState extends State<Daywise> {
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () async {
-                  if (dateController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Please Select Date")),
-                    );
-                    return;
-                  }
-                  Navigator.pop(context);
+                  // if (dateController.text.isEmpty) {
+                  //   ScaffoldMessenger.of(context).showSnackBar(
+                  //     const SnackBar(content: Text("Please Select Date")),
+                  //   );
+                  //   return;
+                  // }
+                  // Navigator.pop(context);
                   var data = await fetchData();
                   if (data != null) {
                     print('Fetched Consolidated Data : $data');
